@@ -1,0 +1,12 @@
+{
+    "compilerOptions": {
+        "outDir": "./built",
+        "sourceMap": true,
+        "allowJs": true,
+        "lib": [ "es6" ],
+        "target": "es5",
+        "strictNullChecks": true
+    },
+    "include": ["./src/**/*"],
+    "exclude": ["**/*.test.*"],
+}
