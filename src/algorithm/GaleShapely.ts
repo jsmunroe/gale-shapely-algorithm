@@ -1,7 +1,7 @@
 import { IAlgorithm } from "../contracts/IAlgorithm";
 import { Evaluation, IParticipant } from "../contracts/IParticipant";
 
-type GaleShapelyState = {
+export type GaleShapelyState = {
     senders: IParticipant[];
     receivers: IParticipant[];
 
@@ -10,11 +10,13 @@ type GaleShapelyState = {
 
     currentReceiver: IParticipant | null;
 
+    pairs: [number, number][];
+
     evaluation: Evaluation;
 }
 
 export default class GaleShapely implements IAlgorithm<GaleShapelyState> {
-    static initState(senders: IParticipant[], receivers: IParticipant[]) {
+    static initState(senders: IParticipant[], receivers: IParticipant[]): GaleShapelyState {
         return {
             senders,
             receivers,
@@ -23,6 +25,8 @@ export default class GaleShapely implements IAlgorithm<GaleShapelyState> {
             currentSender: null,
 
             currentReceiver: null,
+
+            pairs: [],
 
             evaluation: Evaluation.None,
         }
@@ -57,6 +61,15 @@ export default class GaleShapely implements IAlgorithm<GaleShapelyState> {
  
         currentSender.propose((self, preferred) => {
             const evaluation = preferred.evaluate(self);
+
+            if (evaluation === Evaluation.Accept) {
+                const selfIndex = state.senders.findIndex(s => s === self);
+                const preferredIndex = state.receivers.findIndex(p => p === preferred);
+
+                let { pairs } = state; 
+                pairs = [...pairs, [selfIndex, preferredIndex]];
+                state = {...state, pairs};
+            }
 
             state = {...state, currentReceiver: preferred, evaluation};
 

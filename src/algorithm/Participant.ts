@@ -1,5 +1,6 @@
 import { prefetchDNS } from "react-dom";
 import { Evaluation, IParticipant } from "../contracts/IParticipant";
+import { PreferenceSorter } from "../contracts/PreferenceSorter";
 
 
 export default class Participant implements IParticipant {
@@ -28,10 +29,10 @@ export default class Participant implements IParticipant {
 
     constructor(public readonly name: string) { }
 
-    setOthers(others: IParticipant[]) {
+    setOthers(others: IParticipant[], sorter: PreferenceSorter = i => i): void {
         this._preferences = others;
     }
-
+    
     propose(run: (self: IParticipant, preferred: IParticipant) => Evaluation): void {
         if (!this.isFree) {
             return;
@@ -94,22 +95,5 @@ export default class Participant implements IParticipant {
 
     protected next() {
         this._currentPreferenceIndex++;
-    }
-
-    protected selectPreferences(others: IParticipant[]): IParticipant[] {
-        // Sort randomly
-
-        let choices = [...others];
-        let selected: IParticipant[] = []
-
-        while (choices.length > 0) {
-            const selectionIndex = Math.floor(Math.random() * choices.length);
-            const selection = choices[selectionIndex]
-
-            choices = choices.filter((_, i) => i !== selectionIndex);
-            selected = [...selected, selection];
-        }
-
-        return selected;
     }
 }
