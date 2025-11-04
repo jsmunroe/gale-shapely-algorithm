@@ -1,10 +1,14 @@
-import { prefetchDNS } from "react-dom";
 import { Evaluation, IParticipant } from "../contracts/IParticipant";
+import IPreference from "../contracts/IPreference";
 import { PreferenceSorter } from "../contracts/PreferenceSorter";
+import Preference from "./Preference";
+import { v4 } from 'uuid';
 
 
 export default class Participant implements IParticipant {
-    private _preferences: IParticipant[] = []
+    public readonly id: string = v4();
+
+    private _preferences: IPreference[] = []
     private _currentPreferenceIndex: number = 0;
 
     private _acceptedOther: IParticipant | null = null;
@@ -15,6 +19,10 @@ export default class Participant implements IParticipant {
         return this._acceptedOther === null;
     }
 
+    get preferences(): IPreference[] {
+        return this._preferences;
+    }
+
     get acceptedOther(): IParticipant | null {
         return this._acceptedOther;
     }
@@ -23,16 +31,26 @@ export default class Participant implements IParticipant {
         return this._holdOther;
     }
 
-    get currentPreference(): IParticipant | null {
+    get currentPreference(): IPreference | null {
         return this._preferences[this._currentPreferenceIndex] ?? null;
     }
 
     constructor(public readonly name: string) { }
 
     setOthers(others: IParticipant[], sorter: PreferenceSorter = i => i): void {
-        this._preferences = others;
+        this._preferences = sorter(others).map((other, index) => new Preference(index, Evaluation.None, other));
     }
-    
+
+    static setOthers(senders: Participant[], receivers: Participant[], sorter: PreferenceSorter = i => i): void {
+        for (var sender of senders) {
+            sender.setOthers(receivers, sorter);
+        }
+
+        for (var receiver of receivers) {
+            receiver.setOthers(senders, sorter);
+        }
+    }
+
     propose(run: (self: IParticipant, preferred: IParticipant) => Evaluation): void {
         if (!this.isFree) {
             return;
@@ -42,12 +60,9 @@ export default class Participant implements IParticipant {
             return;
         }
 
-        if (!this.currentPreference.isFree) {
-            this.next();
-            return;
-        }
+        let evaluation = run(this, this.currentPreference);
 
-        const evaluation = run(this, this.currentPreference);
+        this.currentPreference.evaluation = evaluation;
 
         switch (evaluation) {
             case Evaluation.Accept:
@@ -71,19 +86,17 @@ export default class Participant implements IParticipant {
         const topFree = this._preferences.find(preference => preference.isFree);
 
         if (this.acceptedOther) {
-            return (this.acceptedOther === other) ? Evaluation.Accept : Evaluation.Reject;
+            return (this.acceptedOther.id === other.id) ? Evaluation.Accept : Evaluation.Reject;
         }
 
-        if (topFree === other 
-            || this.holdOther === other) { // No better sender has proposed, so accept.
-
+        if (topFree?.id === other.id) { // No better sender has proposed, so accept.
             this._holdOther = null;
             this._acceptedOther = other;
             return Evaluation.Accept;
         }
 
-        const holdIndex = this._preferences.findIndex(preference => preference === this.holdOther);
-        const otherIndex = this._preferences.findIndex(preference => preference === other);
+        const holdIndex = this._preferences.findIndex(preference => preference.id === this.holdOther?.id);
+        const otherIndex = this._preferences.findIndex(preference => preference.id === other.id);
 
         if (this.isFree && (this.holdOther === null || holdIndex >= otherIndex)) {
             this._holdOther = other;

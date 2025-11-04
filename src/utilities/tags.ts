@@ -16,6 +16,16 @@ export function tag<TValue>(item: any, name: string, value?: TValue): TValue | u
     return item._tags[name] = value;
 }
 
-export function createTagger<TValue, TItem=any>(name: string): (item: TItem, value?:TValue) => TValue | undefined{
+export function createTagger<TValue=any, TItem=any>(name: string): (item: TItem, value?:TValue) => TValue | undefined{
     return (item: TItem, value?: TValue) => tag<TValue>(item, name, value);
+}
+
+export function copyTags(from: any, to: any): void {
+    if (!from?._tags) {
+        return;
+    }
+
+    to._tags ??= {...from._tags};
+
+
 }

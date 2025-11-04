@@ -7,7 +7,7 @@ function App() {
   const { state, step } = useGaleShapely();
 
   useEffect(() => {
-     setTimeout(step, 1000);
+     setTimeout(step, 250);
   }, [state])
 
   return (

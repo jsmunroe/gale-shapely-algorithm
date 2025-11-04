@@ -8,10 +8,14 @@ export type GaleShapelyState = {
     currentSenderIndex: number | null;
     currentSender: IParticipant | null;
 
-    currentReceiver: IParticipant | null;
+    pairs: Pairing[];
 
-    pairs: [number, number][];
+    evaluation: Evaluation;
+}
 
+export type Pairing = {
+    sender: number;
+    receiver: number;
     evaluation: Evaluation;
 }
 
@@ -23,8 +27,6 @@ export default class GaleShapely implements IAlgorithm<GaleShapelyState> {
 
             currentSenderIndex: null,
             currentSender: null,
-
-            currentReceiver: null,
 
             pairs: [],
 
@@ -47,9 +49,13 @@ export default class GaleShapely implements IAlgorithm<GaleShapelyState> {
     }
 
     step(state: GaleShapelyState): GaleShapelyState {
-        const currentSenderIndex = state.currentSenderIndex !== null 
-            ? (state.currentSenderIndex + 1) % state.senders.length
-            : 0;
+        if (!state.senders.some(participant => participant.isFree)) {
+            return state;
+        }
+
+        state.currentSenderIndex ??= -1;
+
+        const currentSenderIndex = (state.currentSenderIndex + 1) % state.senders.length;
 
         const currentSender = state.senders[currentSenderIndex];
 
@@ -62,16 +68,20 @@ export default class GaleShapely implements IAlgorithm<GaleShapelyState> {
         currentSender.propose((self, preferred) => {
             const evaluation = preferred.evaluate(self);
 
-            if (evaluation === Evaluation.Accept) {
-                const selfIndex = state.senders.findIndex(s => s === self);
-                const preferredIndex = state.receivers.findIndex(p => p === preferred);
+            const selfIndex = state.senders.findIndex(s => s.id === self.id);
+            const preferredIndex = state.receivers.findIndex(p => p.id === preferred.id);
 
-                let { pairs } = state; 
-                pairs = [...pairs, [selfIndex, preferredIndex]];
-                state = {...state, pairs};
+            let { pairs } = state; 
+
+            if (evaluation === Evaluation.Accept) {
+                pairs = pairs.filter(pair => pair.sender !== selfIndex && pair.receiver !== preferredIndex);
             }
 
-            state = {...state, currentReceiver: preferred, evaluation};
+            pairs = pairs.filter(pair => pair.sender !== selfIndex);
+
+            pairs = [...pairs, { sender: selfIndex, receiver: preferredIndex, evaluation }];
+
+            state = {...state, pairs, evaluation};
 
             console.log(`${self.name} proposed to ${preferred.name} who ${evaluation.toLowerCase()}s.`)
 

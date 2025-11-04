@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import GaleShapely, { GaleShapelyState } from "../algorithm/GaleShapely";
 import Participant from "../algorithm/Participant";
 import { randomSorter } from "../algorithm/PreferenceSorters";
+import { Random } from "../utilities/random";
 
 export default function useGaleShapely(stateProp: GaleShapelyState | null = null) {
     const stateMemo = useMemo(() => {
@@ -9,27 +10,30 @@ export default function useGaleShapely(stateProp: GaleShapelyState | null = null
             return stateProp;
         }
 
-        const senderA = new Participant('A');
-        const senderB = new Participant('B');
-        const senderC = new Participant('C');
+        const senders = [
+            new Participant('A'),
+            new Participant('B'),
+            new Participant('C'),
+            new Participant('D'),
+            new Participant('E'),
+        ];
 
-        const receiver1 = new Participant('1');
-        const receiver2 = new Participant('2');
-        const receiver3 = new Participant('3');
+        const receivers = [
+            new Participant('1'),
+            new Participant('2'),
+            new Participant('3'),
+            new Participant('4'),
+            new Participant('5'),
+        ];
 
-        senderA.setOthers([receiver1, receiver2, receiver3], randomSorter);
-        senderB.setOthers([receiver2, receiver3, receiver1], randomSorter);
-        senderC.setOthers([receiver3, receiver1, receiver2], randomSorter);
+        const seed = Math.floor(Math.random() * 10000);
+        console.log(`Using seed: ${seed}`);
 
-        receiver1.setOthers([senderB, senderA, senderC], randomSorter);
-        receiver2.setOthers([senderA, senderB, senderC], randomSorter);
-        receiver3.setOthers([senderC, senderA, senderB], randomSorter);
+        const random = Random.lcr(seed);
 
-        let state = GaleShapely.initState(
-            [senderA, senderB, senderC], 
-            [receiver1, receiver2, receiver3]
-        );
+        Participant.setOthers(senders, receivers, randomSorter(random));
 
+        const state = GaleShapely.initState(senders, receivers);
         return state;        
 
     }, []);
